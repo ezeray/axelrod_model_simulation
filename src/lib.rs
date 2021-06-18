@@ -2,6 +2,7 @@ pub use rand::prelude::*;
 pub use rand_pcg::Pcg64;
 pub use rand::seq::SliceRandom;
 pub use rand::distributions::Bernoulli;
+use serde::{Serialize, Deserialize};
 
 
 pub struct SimulationConfig {
@@ -9,21 +10,22 @@ pub struct SimulationConfig {
 	pub num_traits: u32,
 	pub width: u32,
 	pub height: u32,
-	// pub rng: rand_pcg::Lcg128Xsl64,
+	pub rng: rand_pcg::Lcg128Xsl64,
 }
 
 impl SimulationConfig {
-	pub fn new(num_features: u32, num_traits: u32, width: u32, height: u32) -> SimulationConfig {
+	pub fn new(num_features: u32, num_traits: u32, width: u32, height: u32, rng: rand_pcg::Lcg128Xsl64) -> SimulationConfig {
 		SimulationConfig {
 			num_features,
 			num_traits,
 			width,
 			height,
+			rng,
 		}
 	}
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Point {
 	x: u32,
 	y: u32,
@@ -43,7 +45,7 @@ impl Point {
 	}
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Territory {
 	width: u32,
 	height: u32,
@@ -51,7 +53,7 @@ pub struct Territory {
 }
 
 impl Territory {
-	pub fn new(config: &SimulationConfig) -> Territory {
+	pub fn new(config: &mut SimulationConfig) -> Territory {
 		let mut territory: Vec<Vec<Individual>> = vec![];
 
 		for x in 0..config.width {
@@ -60,7 +62,7 @@ impl Territory {
 
 			for y in 0..config.height {
 				let location = Point { x, y };
-				y_vec.append(&mut vec![Individual::new(location, &config)]);
+				y_vec.append(&mut vec![Individual::new(location, config)]);
 			}
 
 			territory.append(&mut vec![y_vec]);
@@ -80,7 +82,7 @@ impl Territory {
 	}
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Individual {
 	location: Point,
 	cultural_features: Vec<u32>,
@@ -88,11 +90,10 @@ pub struct Individual {
 }
 
 impl Individual {
-	pub fn new(location: Point, config: &SimulationConfig) -> Individual {
-		let mut rng = Pcg64::seed_from_u64(42);
+	pub fn new(location: Point, config: &mut SimulationConfig) -> Individual {
 
 		let cultural_features: Vec<u32> = (0..config.num_features)
-			.map(|_| rng.gen_range(0..config.num_traits)).collect();
+			.map(|_| config.rng.gen_range(0..config.num_traits)).collect();
 
 		let h = config.height - 1;
 		let w = config.width -1;
@@ -130,14 +131,12 @@ impl Individual {
 		Individual { location, cultural_features, neighbors }
 	}
 
-	pub fn choose_random_neighbor(& self) -> &Point {
-		let mut rng = Pcg64::seed_from_u64(42);
+	pub fn choose_random_neighbor(& self, config: &mut SimulationConfig) -> &Point {
 		let vs = &self.neighbors;
-		vs.choose(&mut rng).unwrap()
+		vs.choose(&mut config.rng).unwrap()
 	}
 
-	pub fn interact(&mut self, other: Individual) {
-		let mut rng = Pcg64::seed_from_u64(42);
+	pub fn interact(&mut self, other: Individual, config: &mut SimulationConfig) {
 		let mine = &self.cultural_features;
 		let theirs = &other.cultural_features;
 
@@ -148,25 +147,36 @@ impl Individual {
 			.filter(|&(a, b)| a == b)
 			.count();
 		
+		// IF ALL ELEMENTS ARE THE SAME RETURN
+		if numerator == denominator {
+			return;
+		}
+		
 		let is_interact = Bernoulli::from_ratio(numerator as u32, denominator as u32)
 			.unwrap()
-			.sample(&mut rng);
+			.sample(&mut config.rng);
 
 		if is_interact {
-			println!("individual {:?} \n\nand neighbor {:?} \n\ninteract: {}\n\n\n", self, other, is_interact);
+			// println!("individual {:?} \n\nand neighbor {:?} \n\ninteract: {}\n\n\n", self, other, is_interact);
  			let different_characteristics: Vec<usize> = (0..denominator)
 				.zip(mine.iter().zip(theirs.iter()))
-				.map(|(i, (m, t))| (i, m==t))
+				.map(|(i, (m, t))| (i, m != t))
 				.filter(|(_, b)| *b)
 				.map(|(i, _)| i)
 				.collect();
+			// println!("Different characteristics: {:?}", different_characteristics);
 			
-			let feature_to_mutate = *different_characteristics.choose(&mut rng).unwrap();
+			let feature_to_mutate = *different_characteristics.choose(&mut config.rng).unwrap();
+			// println!("Feature to mutate: {:?}\nself value {:?}\nother value {:?}", feature_to_mutate, self.cultural_features[feature_to_mutate], other.cultural_features[feature_to_mutate]);
 			self.cultural_features[feature_to_mutate] = other.cultural_features[feature_to_mutate];
-			println!("individual {:?} \n\nand neighbor {:?} \n\ninteract: {}\n\n\n", self, other, is_interact);
+			// println!("individual {:?} \n\nand neighbor {:?} \n\n", self, other);
 
 		}
 		
+	}
+
+	pub fn print_cultural_features(&self) {
+		println!("{:?}", self.cultural_features)
 	}
 }
 
