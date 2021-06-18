@@ -178,6 +178,10 @@ impl Individual {
 	pub fn print_cultural_features(&self) {
 		println!("{:?}", self.cultural_features)
 	}
+
+	pub fn clone_cultural_features(&self) -> Vec<u32> {
+		self.cultural_features.clone()
+	}
 }
 
 #[cfg(Tests)]
