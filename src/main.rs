@@ -1,53 +1,32 @@
-use std::fs::File;
+// use std::fs::File;
 pub use rand::prelude::*;
 pub use rand_pcg::Pcg64;
-use std::collections::HashMap;
+
 use axelrod_model_simulation as ax;
 
-fn _add_random(ran_gen: &mut rand_pcg::Lcg128Xsl64, val: i32) -> i32 {
-    let r: i32 = ran_gen.gen_range(1..11);
-    println!("{}", r);
-    println!("{} + {} = {}", val, r, val + r);
-    val + r
-}
-
 fn main() {
-    let mut config = ax::SimulationConfig::new(5, 15, 20, 20, Pcg64::seed_from_u64(42));
+    let seeds: [u64; 200] = [17093, 36562, 20889, 44060, 36378, 55386, 63513, 6699, 16097, 30514, 25163, 27837, 42125, 55577, 59320, 21324, 61220, 57763, 24572, 3258, 17716, 8222, 59069, 61777, 11677, 17176, 62738, 16063, 36766, 54807, 61076, 26670, 61762, 97, 3551, 33086, 32914, 64758, 25232, 26597, 45683, 13783, 50008, 6597, 7472, 9538, 24182, 52475, 58592, 45465, 19739, 12094, 52267, 57829, 36724, 27192, 41722, 14325, 59822, 33665, 35854, 54239, 39959, 41337, 13875, 23129, 45669, 41770, 49843, 53256, 44130, 34648, 13428, 34287, 22918, 50502, 3379, 2845, 11100, 45190, 11463, 26014, 10786, 48470, 14852, 32996, 51181, 57481, 56361, 44070, 1290, 33012, 37210, 45781, 37320, 6228, 26848, 13693, 53179, 19901, 13205, 60437, 33933, 34677, 24856, 59255, 23613, 49835, 5999, 59653, 3045, 30808, 60502, 19174, 18114, 3369, 31911, 12246, 60949, 5703, 64975, 14225, 12387, 46597, 10320, 6065, 30005, 22061, 25933, 28261, 19328, 21017, 16244, 54661, 9469, 894, 60765, 17392, 14931, 33102, 3029, 59344, 4103, 45520, 5732, 12611, 42760, 35212, 31301, 55768, 48363, 25231, 8581, 56658, 31702, 7696, 52334, 36042, 7793, 771, 17900, 20652, 62298, 12763, 32493, 6520, 42201, 47155, 59706, 46996, 27107, 7596, 33468, 15436, 17386, 53160, 24849, 28401, 44390, 40411, 55794, 22001, 63075, 60741, 13003, 10506, 6910, 37544, 1541, 39605, 17056, 60773, 5027, 15807, 60772, 40683, 49042, 2843, 8729, 64037];
+    let dif_sizes: [u32; 2] = [10, 20];
+    let dif_features: [u32; 3] = [5, 10, 15];
+    let dif_traits: [u32; 3] = [5, 10, 15];
+    let num_sim_per_combination = 10;
 
-    let mut simulation = ax::Territory::new(&mut config);
+    let mut seed = seeds.iter();
 
-    // one round of the simulation
-    for _ in 0..1_000_000 {
-        // too much fighting with borrow checker, will look ugly but it's the best I can do at this point
-        // get coordinates for individual
-        let (x, y): (usize, usize) = (config.rng.gen_range(0..config.width) as usize, config.rng.gen_range(0..config.height) as usize);
+    for s in dif_sizes.iter() {
+        for f in dif_features.iter() {
+            for t in dif_traits.iter() {
+                for _ in 0..num_sim_per_combination {
+                    // let my_seed = *seed.next().unwrap();
+                    // println!("seed: {}", my_seed);
+                    let mut config = ax::SimulationConfig::new(
+                        *f, *t, *s, *s, Pcg64::seed_from_u64(*seed.next().unwrap())
+                    );
 
-        let chosen = &simulation.territory[x][y];
-        let loc_neighbor = chosen.choose_random_neighbor(&mut config);
-        let neighbor = simulation.return_neighbor_clone(loc_neighbor);
-
-        let chosen = &mut simulation.territory[x][y];
-        chosen.interact(neighbor, &mut config);
-    }
-    
-    let mut culture_hashmap: HashMap<Vec<u32>, u32> = HashMap::new();
-
-    for i in 0..config.width {
-        for j in 0..config.height {
-            // simulation.territory[i as usize][j as usize].print_cultural_features();
-            let count = culture_hashmap
-                .entry(simulation.territory[i as usize][j as usize].clone_cultural_features())
-                .or_insert(0);
-            *count += 1;
-
+                    let result = ax::run_simulation(&mut config);
+                }
+            }
         }
     }
-
-    for (k, v) in culture_hashmap.iter() {
-        println!("Cultural features combination {:?} appeared {} times", k, v);
-    }
-
-    let file = File::create("./simulation_terrain.json").unwrap();
-    serde_json::to_writer(&file, &simulation).unwrap();
 
 }

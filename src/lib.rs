@@ -3,6 +3,9 @@ pub use rand_pcg::Pcg64;
 pub use rand::seq::SliceRandom;
 pub use rand::distributions::Bernoulli;
 use serde::{Serialize, Deserialize};
+use std::collections::HashMap;
+// use std::fs::File;
+
 
 
 pub struct SimulationConfig {
@@ -182,6 +185,45 @@ impl Individual {
 	pub fn clone_cultural_features(&self) -> Vec<u32> {
 		self.cultural_features.clone()
 	}
+}
+
+pub fn run_simulation(config: &mut SimulationConfig) -> usize {
+	let mut simulation = Territory::new(config);
+
+	for _ in 0..1_000_000 {
+		// too much fighting with borrow checker, will look ugly but it's the best I can do at this point
+        // get coordinates for individual
+        let (x, y): (usize, usize) = (config.rng.gen_range(0..config.width) as usize, config.rng.gen_range(0..config.height) as usize);
+
+        let chosen = &simulation.territory[x][y];
+        let loc_neighbor = chosen.choose_random_neighbor(config);
+        let neighbor = simulation.return_neighbor_clone(loc_neighbor);
+
+        let chosen = &mut simulation.territory[x][y];
+        chosen.interact(neighbor, config);
+	}
+
+	let mut culture_hashmap: HashMap<Vec<u32>, u32> = HashMap::new();
+
+    for i in 0..config.width {
+        for j in 0..config.height {
+            // simulation.territory[i as usize][j as usize].print_cultural_features();
+            let count = culture_hashmap
+                .entry(simulation.territory[i as usize][j as usize].clone_cultural_features())
+                .or_insert(0);
+            *count += 1;
+
+        }
+    }
+
+	// for (k, v) in culture_hashmap.iter() {
+    //     println!("Cultural features combination {:?} appeared {} times", k, v);
+    // }
+
+	// let file = File::create("./simulation_terrain.json").unwrap();
+    // serde_json::to_writer(&file, &simulation).unwrap();
+
+	culture_hashmap.len()
 }
 
 #[cfg(Tests)]
