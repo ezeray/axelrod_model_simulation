@@ -14,23 +14,32 @@ fn main() {
 
     let mut seed = seeds.iter();
     let mut file = File::create("./results_number_of_clusters_per_combination.csv").unwrap();
-    write!(file, "Size,Features,Traits,Avg Num of Clusters\n").unwrap();
+    writeln!(file, "Size,Features,Traits,Avg Num of Clusters").unwrap();
 
     for s in dif_sizes.iter() {
         for f in dif_features.iter() {
             for t in dif_traits.iter() {
                 let mut totals: f32 = 0.;
-                for _ in 0..num_sim_per_combination {
+                for c in 0..num_sim_per_combination {
                     // let my_seed = *seed.next().unwrap();
                     // println!("seed: {}", my_seed);
                     let mut config = ax::SimulationConfig::new(
                         *f, *t, *s, *s, Pcg64::seed_from_u64(*seed.next().unwrap())
                     );
 
-                    totals += ax::run_simulation(&mut config) as f32;
+                    // totals += ax::run_simulation_and_count(&mut config) as f32;
+                    let sim = ax::run_simulation(&mut config);
+                    let num_cultures = ax::run_count_cultures(&config, &sim);
+                    totals += num_cultures.len() as f32;
+
+                    if (c == num_sim_per_combination - 1) && (*f == 10){
+                        let title = format!("./simulation_terrain_features-{}_traits-{}_size-{}.json", *f, *t, *s);
+                        let file = File::create(title).unwrap();
+                        serde_json::to_writer(&file, &sim).unwrap();
+                    }
                 }
                 let avg: f32 = totals / num_sim_per_combination as f32;
-                write!(file, "{},{},{},{}\n", s, f, t, avg).unwrap();
+                writeln!(file, "{},{},{},{}", s, f, t, avg).unwrap();
             }
         }
     }

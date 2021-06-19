@@ -4,7 +4,6 @@ pub use rand::seq::SliceRandom;
 pub use rand::distributions::Bernoulli;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
-// use std::fs::File;
 
 
 
@@ -187,7 +186,7 @@ impl Individual {
 	}
 }
 
-pub fn run_simulation(config: &mut SimulationConfig) -> usize {
+pub fn run_simulation(config: &mut SimulationConfig) -> Territory {
 	let mut simulation = Territory::new(config);
 
 	for _ in 0..1_000_000 {
@@ -203,6 +202,13 @@ pub fn run_simulation(config: &mut SimulationConfig) -> usize {
         chosen.interact(neighbor, config);
 	}
 
+	// let file = File::create("./simulation_terrain.json").unwrap();
+    // serde_json::to_writer(&file, &simulation).unwrap();
+
+	simulation
+}
+
+pub fn run_count_cultures(config: &SimulationConfig, simulation: &Territory) -> HashMap<Vec<u32>, u32> {
 	let mut culture_hashmap: HashMap<Vec<u32>, u32> = HashMap::new();
 
     for i in 0..config.width {
@@ -220,10 +226,7 @@ pub fn run_simulation(config: &mut SimulationConfig) -> usize {
     //     println!("Cultural features combination {:?} appeared {} times", k, v);
     // }
 
-	// let file = File::create("./simulation_terrain.json").unwrap();
-    // serde_json::to_writer(&file, &simulation).unwrap();
-
-	culture_hashmap.len()
+	culture_hashmap
 }
 
 #[cfg(Tests)]
