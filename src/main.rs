@@ -1,4 +1,5 @@
-// use std::fs::File;
+use std::fs::File;
+use std::io::prelude::*;
 pub use rand::prelude::*;
 pub use rand_pcg::Pcg64;
 
@@ -12,10 +13,13 @@ fn main() {
     let num_sim_per_combination = 10;
 
     let mut seed = seeds.iter();
+    let mut file = File::create("./results_number_of_clusters_per_combination.csv").unwrap();
+    write!(file, "Size,Features,Traits,Avg Num of Clusters\n").unwrap();
 
     for s in dif_sizes.iter() {
         for f in dif_features.iter() {
             for t in dif_traits.iter() {
+                let mut totals: f32 = 0.;
                 for _ in 0..num_sim_per_combination {
                     // let my_seed = *seed.next().unwrap();
                     // println!("seed: {}", my_seed);
@@ -23,10 +27,13 @@ fn main() {
                         *f, *t, *s, *s, Pcg64::seed_from_u64(*seed.next().unwrap())
                     );
 
-                    let result = ax::run_simulation(&mut config);
+                    totals += ax::run_simulation(&mut config) as f32;
                 }
+                let avg: f32 = totals / num_sim_per_combination as f32;
+                write!(file, "{},{},{},{}\n", s, f, t, avg).unwrap();
             }
         }
     }
+    
 
 }
