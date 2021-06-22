@@ -55,8 +55,6 @@ pub struct Territory {
 	width: u32,
 	height: u32,
 	pub territory: Vec<Vec<Individual>>,
-	// pub culture_counter: Option<HashMap<Vec<u32>, u32>>,
-	// pub culture_labels: Option<HashMap<Vec<u32>, u32>>,
 }
 
 impl Territory {
@@ -125,8 +123,8 @@ impl Territory {
 				let current_features = self.territory[i as usize][j as usize].clone_cultural_features();
 				if !map.contains_key(&current_features) {
 					map.insert(current_features, current_label);
+					current_label += 1;
 				}
-				current_label += 1;
 				/* 
 				 * 
 				 */
@@ -134,6 +132,16 @@ impl Territory {
 		}
 
 		map
+	}
+
+	pub fn run_assign_label_to_individuals(&mut self, config: &SimulationConfig, label_map: HashMap<Vec<u32>, u32>) {
+		for i in 0..config.width {
+			for j in 0..config.height {
+				let current_features = self.territory[i as usize][j as usize].clone_cultural_features();
+				let current_label = label_map.get(&current_features).unwrap();
+				self.territory[i as usize][j as usize].culture_label = *current_label;
+			}
+		}	
 	}
 	
 	pub fn calc_prop_pop_in_largest_cluster(config: &SimulationConfig, map: &HashMap<Vec<u32>, u32>) -> f32 {
@@ -147,6 +155,7 @@ impl Territory {
 			location: Point{x: location.x() as u32, y: location.y() as u32},
 			cultural_features: neighbor.cultural_features.clone(),
 			neighbors: vec![],
+			culture_label: 0,
 		}
 	}
 }
@@ -176,7 +185,7 @@ pub struct Individual {
 	location: Point,
 	cultural_features: Vec<u32>,
 	neighbors: Vec<Point>,
-	// cluster: Option<u32>,
+	culture_label: u32,
 }
 
 impl Individual {
@@ -218,7 +227,7 @@ impl Individual {
 			_ => vec![],
 		};
 
-		Individual { location, cultural_features, neighbors }
+		Individual { location, cultural_features, neighbors, culture_label: 0 }
 	}
 
 	pub fn choose_random_neighbor(& self, config: &mut SimulationConfig) -> &Point {

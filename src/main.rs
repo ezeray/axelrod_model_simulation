@@ -40,11 +40,14 @@ fn main() {
 
                     // totals += ax::run_simulation_and_count(&mut config) as f32;
                     // let sim = ax::run_simulation(&mut config);
-                    let sim = ax::Territory::run_simulation(&mut config);
+                    let mut sim = ax::Territory::run_simulation(&mut config);
                     let num_cultures = sim.run_count_cultures(&config);
                     totals += num_cultures.len() as f32;
 
                     writeln!(porportion_output, "{},{},{},{}", s, f, t, ax::Territory::calc_prop_pop_in_largest_cluster(&config, &num_cultures)).unwrap();
+                    
+                    let culture_labels_map = sim.run_assign_label_to_cultures(&config);
+                    sim.run_assign_label_to_individuals(&config, culture_labels_map);
 
                     if c == num_sim_per_combination - 1 {
                         let title = format!("./simulation_terrain_features-{}_traits-{}_size-{}.json", *f, *t, *s);
