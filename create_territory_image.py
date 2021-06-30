@@ -40,14 +40,16 @@ def main():
         fig, ax = plt.subplots(1, 1)
         fig.suptitle("Simulation Terrain")
         ax.set(
-            title=f"Size: {sim_config['size']}\t"\
-                f"Features: {sim_config['features']}\t"\
-                f"Traits: {sim_config['traits']}"
+            title=f"Size: {sim_config['size']}"\
+                f" Features: {sim_config['features']}"\
+                f" Traits: {sim_config['traits']}"\
+                f" Run: {sim_config['version']}"
         )
         ax.imshow(culture_labels, cmap=plt.get_cmap("tab20b"))
         out_name = f"./{out_dir}/sim_image_size-{sim_config['size']}_"\
                 f"features-{sim_config['features']}_"\
-                f"traits-{sim_config['traits']}.png"
+                f"traits-{sim_config['traits']}_"\
+                f"run-{sim_config['version']}.png"
         fig.savefig(out_name)
         plt.close()
 
